@@ -4,6 +4,7 @@
 #include "../main.hpp"
 #include <queue>
 #include <set>
+#include <fmt/ostream.h>
 
 struct AOC_Output {
   long value;
@@ -20,6 +21,17 @@ struct point_3d {
     return x == other.x && y == other.y && z == other.z;
   }
 };
+
+std::ostream& operator<< (std::ostream &out, point_3d const& p){
+  return (out << p.x << ", " << p.y << ", " << p.z);
+}
+
+bool operator<(point_3d const &lhs, point_3d const &rhs) {
+  if (lhs.x == rhs.x) { return (lhs.y == rhs.y) ? lhs.z < rhs.z : lhs.y < rhs.y; }
+  return lhs.x < rhs.x;
+};
+
+
 
 class MathUtil {
 public:
@@ -41,7 +53,14 @@ struct AOC_Input {
 
 std::optional<AOC_Input> AOC_Reader::create_from_string(const std::string &line) {
   static scanner s;
-  if (line.empty()) { return AOC_Input(s); }
+  if (line.empty()) {
+    auto cmp = [](point_3d const &lhs, point_3d const &rhs) {
+      if (lhs.x == rhs.x) { return (lhs.y == rhs.y) ? lhs.z < rhs.z : lhs.y < rhs.y; }
+      return lhs.x < rhs.x;
+    };
+    std::ranges::sort(s.beacons, cmp);
+    return AOC_Input(s);
+  }
 
   if (line.find("---") == std::string::npos) {
     auto cline = line;
@@ -104,66 +123,79 @@ public:
 private:
   static auto transformation() {
     using func_t = std::function<point_3d(point_3d const &)>;
-    std::vector<func_t> transform;
 
-    auto x_rot = [](auto const& p){
-      return point_3d{p.x, -p.z, p.y};
+    std::vector<func_t> transform{
+        [](auto const& p) { return point_3d{p.x, p.y, p.z}; },
+        [](auto const& p) { return point_3d{p.x, -p.z, p.y}; },
+        [](auto const& p) { return point_3d{p.x, -p.y, -p.z}; },
+        [](auto const& p) { return point_3d{p.x, p.z, -p.y}; },
+
+        [](auto const& p) { return point_3d{-p.x, -p.y, p.z}; },
+        [](auto const& p) { return point_3d{-p.x, p.z, p.y}; },
+        [](auto const& p) { return point_3d{-p.x, p.y, -p.z}; },
+        [](auto const& p) { return point_3d{-p.x, -p.z, -p.y}; },
+
+        [](auto const& p) { return point_3d{p.y, p.z, p.x}; },
+        [](auto const& p) { return point_3d{p.y, -p.x, p.z}; },
+        [](auto const& p) { return point_3d{p.y, -p.z, -p.x}; },
+        [](auto const& p) { return point_3d{p.y, p.x, -p.z}; },
+
+        [](auto const& p) { return point_3d{-p.y, -p.z, p.x}; },
+        [](auto const& p) { return point_3d{-p.y, p.x, p.z}; },
+        [](auto const& p) { return point_3d{-p.y, p.z, -p.x}; },
+        [](auto const& p) { return point_3d{-p.y, -p.x, -p.z}; },
+
+        [](auto const& p) { return point_3d{p.z, p.x, p.y}; },
+        [](auto const& p) { return point_3d{p.z, -p.y, p.x}; },
+        [](auto const& p) { return point_3d{p.z, -p.x, -p.y}; },
+        [](auto const& p) { return point_3d{p.z, p.y, -p.x}; },
+
+        [](auto const& p) { return point_3d{-p.z, -p.x, p.y}; },
+        [](auto const& p) { return point_3d{-p.z, p.y, p.x}; },
+        [](auto const& p) { return point_3d{-p.z, p.x, -p.y}; },
+        [](auto const& p) { return point_3d{-p.z, -p.y, -p.x}; },
     };
-    auto y_rot = [](auto const& p){
-      return point_3d{-p.z, p.y, p.x};
-    };
-    auto z_rot = [](auto const& p){
-      return point_3d{-p.y, p.x, p.z};
-    };
-
-    for (auto x = 0; x < 4; ++x)
-      for (auto y = 0; y < 4; ++y)
-        for (auto z = 0; z < 4; ++z){
-          auto tfunc = [x_rot, y_rot, z_rot, x, y, z](point_3d const& p){
-            auto r = p;
-            for (auto i = 0; i < x; ++i) r = x_rot(r);
-            for (auto j = 0; j < y; ++j) r = y_rot(r);
-            for (auto i = 0; i < z; ++i) r = z_rot(r);
-            return r;
-          };
-
-          transform.emplace_back(tfunc);
-        }
-
     return transform;
   }
 };
 auto Utils::match_points(const scanner &ref, scanner &s, std::vector<point_3d> ref_int, std::vector<point_3d> s_int) {
   auto tfuncs = Utils::transformation();
 
-  auto cmp = [](point_3d const &lhs, point_3d const &rhs) {
-    if (lhs.x == rhs.x) { return (lhs.y == rhs.y) ? lhs.z < rhs.z : lhs.y < rhs.y; }
-    return lhs.x < rhs.x;
-  };
-  std::ranges::sort(ref_int, cmp);
-  std::ranges::sort(s_int, cmp);
+//  auto cmp = [](point_3d const &lhs, point_3d const &rhs) {
+//    if (lhs.x == rhs.x) { return (lhs.y == rhs.y) ? lhs.z < rhs.z : lhs.y < rhs.y; }
+//    return lhs.x < rhs.x;
+//  };
+//  std::ranges::sort(ref_int, cmp);
 
 
   auto ref_offset = Utils::offset(ref_int);
-  for (auto tf : tfuncs){
+
+  for (auto const& tf : tfuncs){
     std::vector<point_3d> after(s_int.size());
     std::ranges::transform(s_int, std::begin(after), tf);
+
+//    std::ranges::sort(after, cmp);
     auto after_offset = Utils::offset(after);
 
     if (after_offset == ref_offset){
-      auto rpoint = ref_int[0] + ref.r.value();
-      s.r = rpoint + s_int[0];
+
+      for (auto i = 0ul; i < after.size(); ++i)
+        fmt::print("({}) == ({})\n", ref_int[i], after[i]);
+
+      auto rpoint = ref.r.value() + ref_int[0];
+      s.r = rpoint - after[0];
       std::ranges::transform(s.beacons, std::begin(s.beacons), [&s, tf](auto p){
         p = tf(p);
-        p = s.r.value() - p;
+        p = s.r.value() + p;
         return p;
       });
-      break;
+//      return s;
     }
   }
 
   throw std::logic_error("Wft?!");
 }
+
 
 AOC_Output part_1(std::vector<AOC_Input> const &vv) {
   auto v = vv;
@@ -180,9 +212,9 @@ AOC_Output part_1(std::vector<AOC_Input> const &vv) {
       if (!known_position.contains(j)) {
         auto [lbeacons, rbeacons] = Utils::beacons_intersection(v[i].s, v[j].s);
         if (lbeacons.size() >= 12) {
-          fmt::print("{},{} {}\n", i, j, rbeacons.size());
-
           Utils::match_points(v[i].s, v[j].s, lbeacons, rbeacons);
+
+          //fmt::print("Scanner {} position is ({},{},{})\n", j, v[j].s.r->x, v[j].s.r->y, v[j].s.r->z);
 
           next_comp.push(j);
           known_position.insert(j);
@@ -192,8 +224,19 @@ AOC_Output part_1(std::vector<AOC_Input> const &vv) {
 
     next_comp.pop();
   }
-  return 0;
+
+  std::set<point_3d> all_beacons;
+  for (auto const& e : v){
+    all_beacons.insert(e.s.beacons.begin(), e.s.beacons.end());
+  }
+
+  //  std::ranges::for_each(all_beacons, [](auto const& e){
+  //    fmt::print("{},{},{}\n", e.x, e.y, e.z);
+  //  });
+
+  return all_beacons.size();
 }
+
 
 AOC_Output part_2(std::vector<AOC_Input> const &v) { return 0; }
 
